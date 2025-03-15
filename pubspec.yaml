@@ -1,0 +1,32 @@
+name: firestore_client
+
+description: "A lightweight Firestore client for Flutter that simplifies CRUD operations, queries, transactions, batch writes, and real-time document listening."
+
+version: 0.1.0
+
+
+repository: ""
+
+issue_tracker: ""
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cloud_firestore: ^5.6.5
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+  fake_cloud_firestore: ^3.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.15
+  freezed: ^3.0.3
+  json_serializable: ^6.9.4
+
+flutter:
