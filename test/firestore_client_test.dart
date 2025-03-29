@@ -1,4 +1,4 @@
-import 'package:firestore_client/example/lib/models/user.dart';
+import 'package:firestore_client/example/models/user.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_client/firestore_client.dart';
@@ -48,6 +48,17 @@ void main() {
     expect(snapshot.data()?['id'], 'user_123');
   });
 
+  test('create() should throw FirestoreException on toJson error', () async {
+    expect(
+      () => firestoreClient.create(
+        collectionPath: 'users',
+        data: 'invalidData',
+        toJson: (_) => throw Exception('serialization error'),
+      ),
+      throwsA(isA<FirestoreException>()),
+    );
+  });
+
   test(
     'createInSubCollection() should add a document in a subCollection',
     () async {
@@ -60,11 +71,10 @@ void main() {
         toJson: (data) => data,
       );
 
-      final snapshot =
-          await fakeFirestore
-              .collection('users/user123/posts')
-              .doc('post_1')
-              .get();
+      final snapshot = await fakeFirestore
+          .collection('users/user123/posts')
+          .doc('post_1')
+          .get();
       expect(snapshot.exists, true);
       expect(snapshot.data()?['title'], 'First Post');
     },
@@ -104,6 +114,16 @@ void main() {
     expect(user?.name, 'John Doe');
   });
 
+  test('read() should return null if document does not exist', () async {
+    final user = await firestoreClient.read(
+      collectionPath: 'users',
+      docId: 'non_existing_user',
+      fromJson: (json) => json,
+    );
+
+    expect(user, isNull);
+  });
+
   test('update() should modify a document or create if not exist', () async {
     await firestoreClient.update(
       collectionPath: 'users',
@@ -137,6 +157,19 @@ void main() {
         await fakeFirestore.collection('users').doc('user_123').get();
     expect(snapshot.exists, true);
     expect(snapshot.data()?['name'], 'Updated Name');
+  });
+
+  test('update() should throw FirestoreException on serialization error',
+      () async {
+    expect(
+      () => firestoreClient.update(
+        collectionPath: 'users',
+        docId: 'any',
+        data: 'invalidData',
+        toJson: (_) => throw Exception('Serialization failed'),
+      ),
+      throwsA(isA<FirestoreException>()),
+    );
   });
 
   test('delete() should remove a document', () async {
@@ -232,6 +265,27 @@ void main() {
     expect(snapshot2.exists, true);
   });
 
+  test('batchWrite() should throw FirestoreException on error inside batch',
+      () async {
+    final brokenClient = FirestoreClient(firestore: fakeFirestore);
+
+    expect(
+      () => brokenClient.batchWrite([
+        (_) => throw Exception('batch error'),
+      ]),
+      throwsA(isA<FirestoreException>()),
+    );
+  });
+
+  test('runTransaction() should throw FirestoreException on failure', () async {
+    expect(
+      () => firestoreClient.runTransaction((tx) async {
+        throw Exception('transaction failed');
+      }),
+      throwsA(isA<FirestoreException>()),
+    );
+  });
+
   test('runTransaction() should execute a transaction', () async {
     await fakeFirestore.collection('users').doc('user1').set({'counter': 0});
 
@@ -256,5 +310,68 @@ void main() {
     );
 
     expect(count, 2);
+  });
+
+  test('watchQuery() should stream filtered user list', () async {
+    final docRef = fakeFirestore.collection('users').doc('user_1');
+    await docRef.set({'name': 'Alice', 'age': 20});
+
+    final stream = firestoreClient.watchQuery<Map<String, dynamic>>(
+      collectionPath: 'users',
+      conditions: [QueryCondition('age', isGreaterThan: 18)],
+      orderBy: ['age'],
+      fromJson: (json) => json,
+    );
+
+    expectLater(
+      stream,
+      emitsInOrder([
+        [containsPair('name', 'Alice')], // 初回 emit
+        [containsPair('name', 'Alice'), containsPair('name', 'Bob')], // 追加後
+      ]),
+    );
+
+    // 追加入力
+    await fakeFirestore.collection('users').doc('user_2').set({
+      'name': 'Bob',
+      'age': 22,
+    });
+  });
+
+  test('watchQuery() should emit FirestoreException on fromJson error',
+      () async {
+    await fakeFirestore.collection('users').add({'name': 'Test'});
+
+    final stream = firestoreClient.watchQuery<Map<String, dynamic>>(
+      collectionPath: 'users',
+      conditions: [],
+      fromJson: (json) => throw Exception('fromJson failed'), // わざと例外を投げる
+    );
+
+    expectLater(
+      stream,
+      emitsError(isA<FirestoreException>()),
+    );
+  });
+
+  test('collectionGroupQuery() should return documents across subCollections',
+      () async {
+    await fakeFirestore.collection('users/user1/posts').doc('post1').set({
+      'title': 'Hello World',
+    });
+    await fakeFirestore.collection('users/user2/posts').doc('post2').set({
+      'title': 'Goodbye World',
+    });
+
+    final posts =
+        await firestoreClient.collectionGroupQuery<Map<String, dynamic>>(
+      collectionGroupName: 'posts',
+      conditions: [],
+      fromJson: (json) => json,
+    );
+
+    expect(posts.length, 2);
+    expect(posts[0]['title'], isNotNull);
+    expect(posts[1]['title'], isNotNull);
   });
 }
