@@ -1,17 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Firestoreで発生した例外を扱うためのカスタム例外クラスです。
+/// Firestore で発生した例外を扱うためのカスタム例外クラス。
 /// [FirestoreException] is a custom exception class to handle Firestore errors.
 class FirestoreException implements Exception {
+  /// エラーメッセージ
   final String message;
+
+  /// Firebase 側のエラーコード
   final String? code;
+
+  /// スタックトレース
   final StackTrace? stackTrace;
 
-  FirestoreException({required this.message, this.code, this.stackTrace});
+  FirestoreException({
+    required this.message,
+    this.code,
+    this.stackTrace,
+  });
 
-  /// [FirebaseException]から[FirestoreException]を生成します。
-  ///
-  /// Creates a [FirestoreException] from a [FirebaseException].
+  /// [FirebaseException] を [FirestoreException] に変換するファクトリコンストラクタ。
   factory FirestoreException.fromFirebaseException(
     FirebaseException exception,
   ) {

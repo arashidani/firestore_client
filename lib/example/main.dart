@@ -1,83 +1,89 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firestore_client/firestore_client.dart';
 
-import 'client.dart';
-import 'lib/models/user.dart';
+import 'models/user.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  final firestoreClient = createFirestoreClient(); // FirestoreClientを作成
-
-  runApp(MyApp(firestoreClient: firestoreClient));
+  await Firebase.initializeApp();
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final FirestoreClient firestoreClient;
-
-  const MyApp({super.key, required this.firestoreClient});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Firestore Client Example',
-      home: UserScreen(firestoreClient: firestoreClient),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: const UserPage(),
     );
   }
 }
 
-class UserScreen extends StatefulWidget {
-  final FirestoreClient firestoreClient;
-
-  const UserScreen({super.key, required this.firestoreClient});
+class UserPage extends StatefulWidget {
+  const UserPage({super.key});
 
   @override
-  UserScreenState createState() => UserScreenState();
+  State<UserPage> createState() => _UserPageState();
 }
 
-class UserScreenState extends State<UserScreen> {
-  late FirestoreClient firestoreClient;
-  List<User> users = [];
-
-  @override
-  void initState() {
-    super.initState();
-    firestoreClient = widget.firestoreClient;
-    _loadUsers();
-  }
-
-  Future<void> _loadUsers() async {
-    final usersList = await firestoreClient.query<User>(
-      collectionPath: 'users',
-      conditions: [],
-      fromJson: (json) => User.fromJson(json),
-    );
-
-    setState(() {
-      users = usersList;
-    });
-  }
+class _UserPageState extends State<UserPage> {
+  final client = FirestoreClient();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('User List')),
-      body: users.isEmpty
-          ? Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: users.length,
-              itemBuilder: (context, index) {
-                final user = users[index];
-                return ListTile(
-                  title: Text(user.name),
-                  subtitle: Text('Created: ${user.createdAt}'),
-                );
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _loadUsers,
-        child: Icon(Icons.refresh),
+      appBar: AppBar(title: const Text('Users')),
+      body: StreamBuilder<List<User>>(
+        stream: client.watchQuery(
+          collectionPath: 'users',
+          conditions: [
+            QueryCondition('age', isGreaterThan: 18),
+          ],
+          orderBy: ['age'],
+          fromJson: (json) => User.fromJson(json),
+        ),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No users found'));
+          }
+          final users = snapshot.data!;
+          return ListView.builder(
+            itemCount: users.length,
+            itemBuilder: (context, index) {
+              final user = users[index];
+              return ListTile(
+                title: Text(user.name),
+                subtitle: Text('Age: \${user.age}'),
+              );
+            },
+          );
+        },
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addDummyUser,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Future<void> _addDummyUser() async {
+    final user = User(
+        id: '',
+        name: 'User \${DateTime.now().second}',
+        createdAt: DateTime.now());
+    await client.create(
+      collectionPath: 'users',
+      data: user,
+      toJson: (u) => u.toJson(),
     );
   }
 }

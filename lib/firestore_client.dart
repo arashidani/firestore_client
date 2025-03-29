@@ -1,4 +1,4 @@
-library;
+library firestore_client;
 
 export 'src/core/firestore_client.dart';
 export 'src/core/firestore_exception.dart';
