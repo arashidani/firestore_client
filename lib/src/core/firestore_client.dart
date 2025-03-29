@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../firestore_client.dart'; // ここで FirestoreException 等が import される
-import '../models/query_condition.dart';
+import 'package:firestore_client/firestore_client.dart';
 
 /// FirestoreClient は FirebaseFirestore を簡易的に扱うためのラッパークラスです。
 /// CRUD 操作、クエリ、トランザクション、バッチ処理などをサポートします。
@@ -26,7 +25,7 @@ class FirestoreClient {
   /// - [collectionPath] : コレクションのパス
   /// - [docId] : ドキュメントID (null の場合は自動生成)
   /// - [data] : 保存するオブジェクト
-  /// - [toJson] : data を Map<String, dynamic> に変換する関数
+  /// - [toJson] : data を Map`<` String, dynamic> に変換する関数
   ///
   /// 作成日時(createdAt)と更新日時(updatedAt)を自動で設定します。
   ///
@@ -52,7 +51,7 @@ class FirestoreClient {
       } else {
         return await collectionRef.add(dataWithTimestamps);
       }
-    } on FirebaseException catch (e, stackTrace) {
+    } on FirebaseException catch (e) {
       throw FirestoreException.fromFirebaseException(e)..stackTrace?.toString();
     } catch (e, stackTrace) {
       throw FirestoreException(
@@ -97,7 +96,7 @@ class FirestoreClient {
           await _firestore.collection(collectionPath).doc(docId).get();
       if (!snapshot.exists) return null;
       return fromFirestore(snapshot, fromJson);
-    } on FirebaseException catch (e, stackTrace) {
+    } on FirebaseException catch (e) {
       throw FirestoreException.fromFirebaseException(e)..stackTrace?.toString();
     } catch (e, stackTrace) {
       throw FirestoreException(
@@ -146,7 +145,7 @@ class FirestoreClient {
         dataWithUpdatedTimestamp['createdAt'] = FieldValue.serverTimestamp();
         await docRef.set(dataWithUpdatedTimestamp, SetOptions(merge: true));
       }
-    } on FirebaseException catch (e, stackTrace) {
+    } on FirebaseException catch (e) {
       throw FirestoreException.fromFirebaseException(e)..stackTrace?.toString();
     } catch (e, stackTrace) {
       throw FirestoreException(
@@ -184,7 +183,7 @@ class FirestoreClient {
   }) async {
     try {
       await _firestore.collection(collectionPath).doc(docId).delete();
-    } on FirebaseException catch (e, stackTrace) {
+    } on FirebaseException catch (e) {
       throw FirestoreException.fromFirebaseException(e)..stackTrace?.toString();
     } catch (e, stackTrace) {
       throw FirestoreException(
@@ -272,7 +271,7 @@ class FirestoreClient {
         final data = doc.data();
         return fromJson({...data, 'id': doc.id});
       }).toList();
-    } on FirebaseException catch (e, stackTrace) {
+    } on FirebaseException catch (e) {
       throw FirestoreException.fromFirebaseException(e)..stackTrace?.toString();
     } catch (e, stackTrace) {
       throw FirestoreException(
@@ -306,7 +305,7 @@ class FirestoreClient {
         final data = doc.data();
         return fromJson({...data, 'id': doc.id});
       }).toList();
-    } on FirebaseException catch (e, stackTrace) {
+    } on FirebaseException catch (e) {
       throw FirestoreException.fromFirebaseException(e)..stackTrace?.toString();
     } catch (e, stackTrace) {
       throw FirestoreException(
@@ -328,7 +327,7 @@ class FirestoreClient {
         action(batch);
       }
       await batch.commit();
-    } on FirebaseException catch (e, stackTrace) {
+    } on FirebaseException catch (e) {
       throw FirestoreException.fromFirebaseException(e)..stackTrace?.toString();
     } catch (e, stackTrace) {
       throw FirestoreException(
@@ -348,7 +347,7 @@ class FirestoreClient {
   ) async {
     try {
       return await _firestore.runTransaction(transactionHandler);
-    } on FirebaseException catch (e, stackTrace) {
+    } on FirebaseException catch (e) {
       throw FirestoreException.fromFirebaseException(e)..stackTrace?.toString();
     } catch (e, stackTrace) {
       throw FirestoreException(
@@ -381,7 +380,7 @@ class FirestoreClient {
 
       final aggregate = await ref.count().get();
       return aggregate.count;
-    } on FirebaseException catch (e, stackTrace) {
+    } on FirebaseException catch (e) {
       throw FirestoreException.fromFirebaseException(e)..stackTrace?.toString();
     } catch (e, stackTrace) {
       throw FirestoreException(
@@ -394,7 +393,7 @@ class FirestoreClient {
   // ===========================================================================
   // =                             WATCH QUERY                                =
   // ===========================================================================
-  /// コレクションに対してクエリを実行し、その結果を List<T> としてストリームで返す。
+  /// コレクションに対してクエリを実行し、その結果を List`<` T> としてストリームで返す。
   /// [orderBy] など、ソートの指定が必要な場合は引数で受け取るようにする。
   Stream<List<T>> watchQuery<T>({
     required String collectionPath,
