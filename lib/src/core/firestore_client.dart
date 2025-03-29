@@ -205,35 +205,36 @@ class FirestoreClient {
     return delete(collectionPath: path, docId: docId);
   }
 
+// FirestoreClientクラスに追加するメソッド（修正版）
+
   // ===========================================================================
   // =                                FETCH ALL                                =
   // ===========================================================================
   /// 指定したドキュメントIDのリストに基づいて、複数のドキュメントを一度に取得します。
-  /// - [collectionPath]: コレクションのパス
-  /// - [docIds]: 取得するドキュメントIDのリスト
-  /// - [fromJson]: JSONからオブジェクトへの変換関数
+  /// - [collectionPath] : コレクションのパス
+  /// - [docIds] : 取得するドキュメントIDのリスト
+  /// - [fromJson] : JSONからオブジェクトへの変換関数
   ///
-  /// 戻り値は `Map<String, T?>` 形式で、キーはドキュメントID、値はデータオブジェクト（存在しない場合はnull）
-  Future<Map<String, T?>> fetchAll<T>({
+  /// 戻り値は `List<T>` で、存在するドキュメントのみを含みます。
+  Future<List<T>> fetchAll<T>({
     required String collectionPath,
     required List<String> docIds,
     required T Function(Map<String, dynamic>) fromJson,
   }) async {
     try {
-      final result = <String, T?>{};
-
-      // ドキュメントIDが空の場合は空のマップを返す
-      if (docIds.isEmpty) return result;
+      // ドキュメントIDが空の場合は空のリストを返す
+      if (docIds.isEmpty) return [];
 
       // バッチで取得する（並列処理）
       final futures = docIds.map((docId) => read<T>(
             collectionPath: collectionPath,
             docId: docId,
             fromJson: fromJson,
-          ).then((value) => MapEntry(docId, value)));
+          ));
 
-      final entries = await Future.wait(futures);
-      return Map.fromEntries(entries);
+      final results = await Future.wait(futures);
+      // nullでない結果だけをリストに含める
+      return results.where((item) => item != null).cast<T>().toList();
     } on FirebaseException catch (e) {
       throw FirestoreException.fromFirebaseException(e)..stackTrace?.toString();
     } catch (e, stackTrace) {
@@ -245,7 +246,7 @@ class FirestoreClient {
   }
 
   /// サブコレクション内の複数のドキュメントを一度に取得します。
-  Future<Map<String, T?>> fetchAllInSubCollection<T>({
+  Future<List<T>> fetchAllInSubCollection<T>({
     required String parentCollectionPath,
     required String parentDocId,
     required String subCollectionName,
@@ -263,21 +264,21 @@ class FirestoreClient {
   // ===========================================================================
   // =                                WATCH ALL                                =
   // ===========================================================================
-  /// 複数のドキュメントの変更を監視し、それぞれの変更をストリームとして返します。
-  /// - [collectionPath]: コレクションのパス
-  /// - [docIds]: 監視するドキュメントIDのリスト
-  /// - [fromJson]: JSONからオブジェクトへの変換関数
+  /// 複数のドキュメントの変更を監視し、リストとしてストリームで返します。
+  /// - [collectionPath] : コレクションのパス
+  /// - [docIds] : 監視するドキュメントIDのリスト
+  /// - [fromJson] : JSONからオブジェクトへの変換関数
   ///
-  /// 戻り値は `Stream<Map<String, T?>>` で、キーはドキュメントID、値は最新のデータ（存在しない場合はnull）
-  Stream<Map<String, T?>> watchAll<T>({
+  /// 戻り値は `Stream<List<T>>` で、存在するドキュメントのみを含みます。
+  Stream<List<T>> watchAll<T>({
     required String collectionPath,
     required List<String> docIds,
     required T Function(Map<String, dynamic>) fromJson,
   }) {
     try {
-      // ドキュメントIDが空の場合は空のマップを流すストリームを返す
+      // ドキュメントIDが空の場合は空のリストを流すストリームを返す
       if (docIds.isEmpty) {
-        return Stream.value(<String, T?>{});
+        return Stream.value(<T>[]);
       }
 
       // 各ドキュメントの監視ストリームを作成
@@ -286,12 +287,13 @@ class FirestoreClient {
           collectionPath: collectionPath,
           docId: docId,
           fromJson: fromJson,
-        ).map((data) => MapEntry(docId, data));
+        );
       }).toList();
 
-      // 複数のストリームをまとめて、Map<String, T?>として出力する
-      return StreamZip<MapEntry<String, T?>>(streams).map((entries) {
-        return Map.fromEntries(entries);
+      // 複数のストリームをまとめて、最新の状態を List<T> として出力する
+      return StreamZip<T?>(streams).map((items) {
+        // nullでない項目だけをフィルタリング
+        return items.where((item) => item != null).cast<T>().toList();
       });
     } catch (e, stackTrace) {
       throw FirestoreException(
@@ -302,7 +304,7 @@ class FirestoreClient {
   }
 
   /// サブコレクション内の複数のドキュメントの変更を監視します。
-  Stream<Map<String, T?>> watchAllInSubCollection<T>({
+  Stream<List<T>> watchAllInSubCollection<T>({
     required String parentCollectionPath,
     required String parentDocId,
     required String subCollectionName,

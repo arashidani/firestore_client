@@ -227,27 +227,6 @@ void main() {
 
   // test/firestore_client_test.dart に追加
 
-// fetchAll() のテスト
-  test('fetchAll() should fetch multiple documents', () async {
-    await fakeFirestore.collection('users').doc('user1').set({'name': 'Alice'});
-    await fakeFirestore.collection('users').doc('user2').set({'name': 'Bob'});
-    await fakeFirestore
-        .collection('users')
-        .doc('user3')
-        .set({'name': 'Charlie'});
-
-    final result = await firestoreClient.fetchAll<Map<String, dynamic>>(
-      collectionPath: 'users',
-      docIds: ['user1', 'user2', 'non_existent'],
-      fromJson: (json) => json,
-    );
-
-    expect(result.length, 3);
-    expect(result['user1']?['name'], 'Alice');
-    expect(result['user2']?['name'], 'Bob');
-    expect(result['non_existent'], isNull);
-  });
-
   test('fetchAll() should return empty map for empty docIds', () async {
     final result = await firestoreClient.fetchAll<Map<String, dynamic>>(
       collectionPath: 'users',
@@ -272,7 +251,55 @@ void main() {
     );
   });
 
-  test('watchAll() should return a stream with empty map for empty docIds',
+  // test/firestore_client_test.dart に追加 (修正版)
+
+// fetchAll() のテスト
+  test('fetchAll() should fetch multiple documents as a list', () async {
+    await fakeFirestore.collection('users').doc('user1').set({'name': 'Alice'});
+    await fakeFirestore.collection('users').doc('user2').set({'name': 'Bob'});
+    await fakeFirestore
+        .collection('users')
+        .doc('user3')
+        .set({'name': 'Charlie'});
+
+    final result = await firestoreClient.fetchAll<Map<String, dynamic>>(
+      collectionPath: 'users',
+      docIds: ['user1', 'user2', 'non_existent'],
+      fromJson: (json) => json,
+    );
+
+    expect(result.length, 2); // non_existent は含まれない
+    expect(result.any((item) => item['name'] == 'Alice'), isTrue);
+    expect(result.any((item) => item['name'] == 'Bob'), isTrue);
+    expect(
+        result.any((item) => item['name'] == 'Charlie'), isFalse); // リクエストしていない
+  });
+
+  test('fetchAll() should return empty list for empty docIds', () async {
+    final result = await firestoreClient.fetchAll<Map<String, dynamic>>(
+      collectionPath: 'users',
+      docIds: [],
+      fromJson: (json) => json,
+    );
+
+    expect(result, isEmpty);
+  });
+
+  test('fetchAll() should throw FirestoreException on fromJson error',
+      () async {
+    await fakeFirestore.collection('users').doc('user1').set({'name': 'Alice'});
+
+    expect(
+      () => firestoreClient.fetchAll<Map<String, dynamic>>(
+        collectionPath: 'users',
+        docIds: ['user1'],
+        fromJson: (_) => throw Exception('fromJson error'),
+      ),
+      throwsA(isA<FirestoreException>()),
+    );
+  });
+
+  test('watchAll() should return a stream with empty list for empty docIds',
       () async {
     final stream = firestoreClient.watchAll<Map<String, dynamic>>(
       collectionPath: 'users',
@@ -285,7 +312,8 @@ void main() {
   });
 
 // サブコレクション関連のテスト
-  test('fetchAllInSubCollection() should fetch documents in a subCollection',
+  test(
+      'fetchAllInSubCollection() should fetch documents in a subCollection as a list',
       () async {
     await fakeFirestore
         .collection('users/user123/posts')
@@ -306,8 +334,8 @@ void main() {
     );
 
     expect(result.length, 2);
-    expect(result['post1']?['title'], 'Post 1');
-    expect(result['post2']?['title'], 'Post 2');
+    expect(result.any((item) => item['title'] == 'Post 1'), isTrue);
+    expect(result.any((item) => item['title'] == 'Post 2'), isTrue);
   });
 
   test('query() should return filtered users', () async {
