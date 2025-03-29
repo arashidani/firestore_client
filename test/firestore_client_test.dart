@@ -300,6 +300,7 @@ void main() {
   });
 
   test('watchAll() should return a stream with empty list for empty docIds',
+
       () async {
     final stream = firestoreClient.watchAll<Map<String, dynamic>>(
       collectionPath: 'users',
