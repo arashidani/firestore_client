@@ -6,16 +6,18 @@ Firestore Client は、Firebase Firestore を簡単に操作できる Flutter �
 - 📌 **CRUD operations**: Create, Read, Update, and Delete Firestore documents easily.
 - 🔍 **Queries**: Perform filtered Firestore queries with flexible conditions.
 - 🔄 **Real-time updates**: Listen to document changes in real-time.
-- 🔄 **Batch writes**: Execute multiple write operations in a single transaction.
-- 🔄 **Firestore transactions**: Perform Firestore transactions safely and efficiently.
+- 📡 **Real-time queries**: Listen to query results as they update in real-time.
+- 🧺 **Batch writes**: Execute multiple write operations in a single transaction.
+- 🔁 **Firestore transactions**: Perform Firestore transactions safely and efficiently.
 - 📂 **SubCollection support**: Easily handle nested Firestore collections.
 
 ## 特徴
 - 📌 CRUD 操作: Firestore のドキュメントを簡単に作成・取得・更新・削除できます。
 - 🔍 クエリ: 柔軟な条件を指定して Firestore のデータを検索できます。
 - 🔄 リアルタイム更新: Firestore の変更をリアルタイムで監視できます。
-- 🔄 バッチ書き込み: 複数の Firestore 書き込み操作を一括で実行できます。
-- 🔄 トランザクション: Firestore のトランザクションを安全かつ効率的に実行できます。
+- 📡 リアルタイムクエリ: クエリ結果の変更をリアルタイムに取得できます。
+- 🧺 バッチ書き込み: 複数の Firestore 書き込み操作を一括で実行できます。
+- 🔁 トランザクション: Firestore のトランザクションを安全かつ効率的に実行できます。
 - 📂 サブコレクション対応: Firestore のネストされたコレクションを簡単に管理できます。
 
 ## Getting Started
@@ -105,7 +107,24 @@ final userStream = firestoreClient.watch<User>(
 );
 
 userStream.listen((user) {
-  print('User updated: ${user?.name}');
+  print('User updated: \${user?.name}');
+});
+```
+
+### Watching a Query in Real-time
+```dart
+final reportsStream = firestoreClient.watchQuery<DailyReport>(
+  collectionPath: 'users/uid123/dailyReports',
+  conditions: [
+    QueryCondition('date', isGreaterThanOrEqualTo: start),
+    QueryCondition('date', isLessThan: end),
+  ],
+  orderBy: ['date'],
+  fromJson: (json) => DailyReport.fromJson(json),
+);
+
+reportsStream.listen((reports) {
+  print('Got \${reports.length} reports');
 });
 ```
 
@@ -115,4 +134,3 @@ userStream.listen((user) {
 - For more details, refer to the official Firebase Firestore documentation.
 
 Happy coding! 🚀
-
