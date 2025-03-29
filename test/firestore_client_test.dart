@@ -225,6 +225,91 @@ void main() {
     await docRef.update({'name': 'Updated Name'});
   });
 
+  // test/firestore_client_test.dart に追加
+
+// fetchAll() のテスト
+  test('fetchAll() should fetch multiple documents', () async {
+    await fakeFirestore.collection('users').doc('user1').set({'name': 'Alice'});
+    await fakeFirestore.collection('users').doc('user2').set({'name': 'Bob'});
+    await fakeFirestore
+        .collection('users')
+        .doc('user3')
+        .set({'name': 'Charlie'});
+
+    final result = await firestoreClient.fetchAll<Map<String, dynamic>>(
+      collectionPath: 'users',
+      docIds: ['user1', 'user2', 'non_existent'],
+      fromJson: (json) => json,
+    );
+
+    expect(result.length, 3);
+    expect(result['user1']?['name'], 'Alice');
+    expect(result['user2']?['name'], 'Bob');
+    expect(result['non_existent'], isNull);
+  });
+
+  test('fetchAll() should return empty map for empty docIds', () async {
+    final result = await firestoreClient.fetchAll<Map<String, dynamic>>(
+      collectionPath: 'users',
+      docIds: [],
+      fromJson: (json) => json,
+    );
+
+    expect(result, isEmpty);
+  });
+
+  test('fetchAll() should throw FirestoreException on fromJson error',
+      () async {
+    await fakeFirestore.collection('users').doc('user1').set({'name': 'Alice'});
+
+    expect(
+      () => firestoreClient.fetchAll<Map<String, dynamic>>(
+        collectionPath: 'users',
+        docIds: ['user1'],
+        fromJson: (_) => throw Exception('fromJson error'),
+      ),
+      throwsA(isA<FirestoreException>()),
+    );
+  });
+
+  test('watchAll() should return a stream with empty map for empty docIds',
+      () async {
+    final stream = firestoreClient.watchAll<Map<String, dynamic>>(
+      collectionPath: 'users',
+      docIds: [],
+      fromJson: (json) => json,
+    );
+
+    final result = await stream.first;
+    expect(result, isEmpty);
+  });
+
+// サブコレクション関連のテスト
+  test('fetchAllInSubCollection() should fetch documents in a subCollection',
+      () async {
+    await fakeFirestore
+        .collection('users/user123/posts')
+        .doc('post1')
+        .set({'title': 'Post 1'});
+    await fakeFirestore
+        .collection('users/user123/posts')
+        .doc('post2')
+        .set({'title': 'Post 2'});
+
+    final result =
+        await firestoreClient.fetchAllInSubCollection<Map<String, dynamic>>(
+      parentCollectionPath: 'users',
+      parentDocId: 'user123',
+      subCollectionName: 'posts',
+      docIds: ['post1', 'post2'],
+      fromJson: (json) => json,
+    );
+
+    expect(result.length, 2);
+    expect(result['post1']?['title'], 'Post 1');
+    expect(result['post2']?['title'], 'Post 2');
+  });
+
   test('query() should return filtered users', () async {
     await fakeFirestore.collection('users').doc('user_1').set({
       'name': 'Alice',
