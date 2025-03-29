@@ -7,7 +7,7 @@ FirestoreClient createFirestoreClient() {
   return FirestoreClient(firestore: FirebaseFirestore.instance);
 }
 
-/// FakeFirestoreを使用する場合（テスト用）
+/// FakeFirestoreを使用する場合（test）
 FirestoreClient createFakeFirestoreClient() {
   final fakeFirestore = FakeFirebaseFirestore();
   return FirestoreClient(firestore: fakeFirestore);
