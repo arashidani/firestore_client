@@ -10,6 +10,8 @@ Firestore Client は、Firebase Firestore を簡単に操作できる Flutter �
 - 🧺 **Batch writes**: Execute multiple write operations in a single transaction.
 - 🔁 **Firestore transactions**: Perform Firestore transactions safely and efficiently.
 - 📂 **SubCollection support**: Easily handle nested Firestore collections.
+- 🔄 **fetchAll**: Retrieve multiple documents at once
+- 📡 **watchAll**: Monitor multiple documents in real-time
 
 ## 特徴
 - 📌 CRUD 操作: Firestore のドキュメントを簡単に作成・取得・更新・削除できます。
@@ -19,6 +21,8 @@ Firestore Client は、Firebase Firestore を簡単に操作できる Flutter �
 - 🧺 バッチ書き込み: 複数の Firestore 書き込み操作を一括で実行できます。
 - 🔁 トランザクション: Firestore のトランザクションを安全かつ効率的に実行できます。
 - 📂 サブコレクション対応: Firestore のネストされたコレクションを簡単に管理できます。
+- 🔄 複数ドキュメント対応: 複数のドキュメントを効率的に一度に取得できます。
+- 📡 複数ドキュメントの監視対応: 複数のドキュメントの変更をリアルタイムに監視できます。
 
 ## Getting Started
 ### Installation
@@ -126,6 +130,65 @@ final reportsStream = firestoreClient.watchQuery<DailyReport>(
 reportsStream.listen((reports) {
   print('Got \${reports.length} reports');
 });
+```
+### Fetching Multiple Documents at Once
+```dart
+final users = await firestoreClient.fetchAll(
+  collectionPath: 'users',
+  docIds: ['user_123', 'user_456', 'user_789'],
+  fromJson: (json) => User.fromJson(json),
+);
+
+// Results are in Map format
+users.forEach((userId, user) {
+  if (user != null) {
+    print('User $userId: ${user.name}');
+  } else {
+    print('User $userId not found');
+  }
+});
+```
+
+### Watching Multiple Documents in Real-time
+```dart
+final usersStream = firestoreClient.watchAll(
+  collectionPath: 'users',
+  docIds: ['user_123', 'user_456', 'user_789'],
+  fromJson: (json) => User.fromJson(json),
+);
+
+usersStream.listen((usersMap) {
+  // Data flows as Map format
+  usersMap.forEach((userId, user) {
+    if (user != null) {
+      print('User $userId updated: ${user.name}');
+    } else {
+      print('User $userId was deleted or does not exist');
+    }
+  });
+});
+```
+
+### Fetching Multiple Documents in a SubCollection
+```dart
+final posts = await firestoreClient.fetchAllInSubCollection(
+  parentCollectionPath: 'users',
+  parentDocId: 'user_123',
+  subCollectionName: 'posts',
+  docIds: ['post_1', 'post_2'],
+  fromJson: (json) => Post.fromJson(json),
+);
+```
+
+### Watching Multiple Documents in a SubCollection
+```dart
+final postsStream = firestoreClient.watchAllInSubCollection(
+  parentCollectionPath: 'users',
+  parentDocId: 'user_123',
+  subCollectionName: 'posts',
+  docIds: ['post_1', 'post_2'],
+  fromJson: (json) => Post.fromJson(json),
+);
 ```
 
 ## Additional Information
