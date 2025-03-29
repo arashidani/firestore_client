@@ -1,6 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+/// FirestoreのTimestamp型とDartのDateTime型を相互変換するためのコンバータです。
+/// Freezedやjson_serializable の @JsonKeyで使用することを想定しています。
+///
+/// 例:
+/// ```dart
+/// @TimeStampConverter()
+/// final DateTime? createdAt;
+/// ```
 class TimeStampConverter implements JsonConverter<DateTime?, dynamic> {
   const TimeStampConverter();
 
