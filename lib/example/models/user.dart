@@ -9,8 +9,8 @@ abstract class User with _$User {
   factory User({
     required String id,
     required String name,
-    @TimeStampConverter() required DateTime? createdAt,
-    @TimeStampConverter() required DateTime? updatedAt,
+    @TimeStampConverter() DateTime? createdAt,
+    @TimeStampConverter() DateTime? updatedAt,
   }) = _User;
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
